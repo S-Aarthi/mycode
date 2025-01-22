@@ -1,0 +1,92 @@
+package com.controller;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.codehaus.jackson.map.ObjectMapper;
+
+import com.dto.PickUpAnalysisFilterDTO;
+import com.dto.WeatherDTO;
+import com.service.LoadJSON;
+import com.service.SearchFilters;
+
+
+@WebServlet("/AnalysisController")
+public class AnalysisController extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+    
+    public AnalysisController() 
+    {
+        super();
+        
+    }
+
+	
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		doPost(request, response);
+	}
+
+	
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		HttpSession session = request.getSession();
+		String urlPath = "";
+		String taskId = request.getParameter("taskId") != null ? request.getParameter("taskId") : "AnalysisLanding";
+		List<WeatherDTO> records = LoadJSON.loadRecords();
+		if(taskId.equalsIgnoreCase("AnalysisLanding"))
+		{
+			TreeSet<String> boroughLst = records.stream()
+				    .filter(s -> s.getBorough() != null && !s.getBorough().isEmpty()) 
+				    .map(WeatherDTO::getBorough) 
+				    .collect(Collectors.toCollection(TreeSet::new)); 
+			session.setAttribute("BoroughList", boroughLst);
+			session.setAttribute("WeatherData", records);
+			urlPath = "/PickupAnalysis.jsp";
+		}
+		else if(taskId.equalsIgnoreCase("AnalysisFilter"))
+		{
+			System.out.println("---------DO ANALYSIS SEARCH FILTER------------");
+			String dateFilterType = request.getParameter("filterType");
+			String startDate = request.getParameter("startDate");
+			String endDate = request.getParameter("endDate");
+			String startDateTime = request.getParameter("startDateTime");
+			String endDateTime = request.getParameter("endDateTime");
+			String borough = request.getParameter("borough");
+			String pickupRange = request.getParameter("noOfPickups");
+			String trend = request.getParameter("trend");
+			
+			PickUpAnalysisFilterDTO pickupDTO = new PickUpAnalysisFilterDTO();
+			pickupDTO.setDateFilterType(dateFilterType);
+			pickupDTO.setStartDate(startDate);
+			pickupDTO.setEndDate(endDate);
+			pickupDTO.setStartDateTie(startDateTime);
+			pickupDTO.setEndDateTime(endDateTime);
+			pickupDTO.setPickupRange(pickupRange);
+			pickupDTO.setBorough(borough);
+			pickupDTO.setTrend(trend);
+			System.out.println("ANALYSIS FILTER DTO ::" + new ObjectMapper().writeValueAsString(pickupDTO));
+			List<WeatherDTO> analysisList = SearchFilters.pickUpAnalysisFilter(pickupDTO);
+			session.setAttribute("WeatherData", analysisList);
+			session.setAttribute("PickupFilVal", pickupDTO);
+			urlPath = "/PickUpAnalysis.jsp";
+		}
+		else if(taskId.equalsIgnoreCase("PickAnalysisFilterReset"))
+		{
+			session.setAttribute("PickupFilVal", null);
+			session.setAttribute("WeatherData", records);
+			urlPath = "/PickUpAnalysis.jsp";
+		}
+		
+		getServletConfig().getServletContext().getRequestDispatcher(urlPath).forward(request, response);
+	}
+
+}
