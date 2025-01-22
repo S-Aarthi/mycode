@@ -1,0 +1,324 @@
+package com.controller;
+
+import java.io.IOException;
+
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.codehaus.jackson.map.ObjectMapper;
+
+import com.dto.DashboardFilterDTO;
+import com.dto.WeatherAnalysisDTO;
+import com.dto.WeatherDTO;
+import com.service.ExcelToJSON;
+import com.service.LoadJSON;
+import com.service.SearchFilters;
+
+
+@WebServlet("/MainController")
+public class MainController extends HttpServlet 
+{
+    private static final long serialVersionUID = 1L;
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException 
+    {
+    	System.out.println("----MainController---doGet-----");
+    	doPost(request,response);
+    }
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException 
+    {
+    	  String taskId = "0";
+          String nextUrl="";
+          String displayMessage = "";
+          HttpSession session = request.getSession();
+          
+        try 
+        {
+
+            System.out.println("----MainController---doPost-----");
+            
+            ExcelToJSON.formExcelTOJSON();
+            LoadJSON.loadRecords();
+            
+            List<WeatherDTO> records = LoadJSON.loadRecords();
+            
+//            ExcelToJSON.formExcelTOJSON();
+//            LoadJSON.loadRecords();
+//            List<WeatherDTO> weatherList = SearchFilters.dashBoardFilter();
+//            
+//            System.out.println("WEATHER DATA LIST ::" + new ObjectMapper().writeValueAsString(weatherList));
+//            
+//            
+//            List<WeatherDTO> dtoList = SearchFilters.dashBoardFilter();
+//            
+//            System.out.println("FILTER LIST ::" + new ObjectMapper().writeValueAsString(dtoList));
+            
+            if (request.getParameter("taskId") != null) 
+            {
+                taskId = request.getParameter("taskId");
+                System.out.println("taskId :: "+taskId);
+                session.setAttribute("displayMessage", null);
+            }
+
+            //-----------Entering the application------------
+            if (taskId.equalsIgnoreCase("0")) 
+            {
+            	System.out.println("Inside taskid-0 :: "+taskId);
+            	nextUrl = "/Login.jsp";
+            }
+            
+            //------------Register New Button is clicked----------------
+            if (taskId.equalsIgnoreCase("regNew")) 
+            {
+            	System.out.println("Inside regNew :: "+taskId);
+                String userId = "";
+                String password = "";
+                String confirmPassword = "";
+
+                if (request.getParameter("userId") != null) 
+                {
+                    userId = request.getParameter("userId");
+                    System.out.println("userId :: "+userId);
+                }
+                System.out.println("User ID: " + userId);
+
+                if (request.getParameter("password") != null) 
+                {
+                    password = request.getParameter("password");
+                    System.out.println("password :: "+password);
+                }
+                System.out.println("Password: " + password);
+
+                if (request.getParameter("confirmPassword") != null) 
+                {
+                    confirmPassword = request.getParameter("confirmPassword");
+                    System.out.println("confirmPassword :: "+confirmPassword);
+                }
+                System.out.println("Confirm Password: " + confirmPassword);
+
+         
+                if (!password.equals(confirmPassword)) 
+                {
+                    displayMessage = "Passwords do not match. Please try again.";
+                    return;
+                }
+
+                System.out.println("Registration successful for User ID: " + userId);
+                displayMessage ="Registration successful";
+              
+                response.getWriter().println("Registration successful for User ID: " + userId);
+            }
+            
+            
+            
+            //------------------Login button is clicked ------------------
+            if (taskId.equalsIgnoreCase("login")) 
+            {
+                System.out.println("Inside login :: " + taskId);
+                String userId = "";
+                String password = "";
+
+                if (request.getParameter("userId") != null) 
+                {
+                    userId = request.getParameter("userId");
+                    System.out.println("userId :: " + userId);
+                }
+
+                if (request.getParameter("password") != null) 
+                {
+                    password = request.getParameter("password");
+                    System.out.println("password :: " + password);
+                }
+
+                // Validate login credentials and redirect accordingly
+                
+                //admin login
+                if ("admin".equalsIgnoreCase(userId) && "admin123".equals(password)) 
+                {
+                    System.out.println("Login successful for admin.");
+                    displayMessage ="Login successful for admin.";
+                    nextUrl = "/AdminPage.jsp";
+                } 
+                
+                
+                //userLogin
+                else if ("user1".equalsIgnoreCase(userId) && "user101".equals(password)) 
+                {
+                    System.out.println("Login successful for user1.");
+                    displayMessage ="Login successful for user1.";
+                    
+                    
+                    TreeSet<String> boroughLst = records.stream()
+        				    .filter(s -> s.getBorough() != null && !s.getBorough().isEmpty()) 
+        				    .map(WeatherDTO::getBorough) 
+        				    .collect(Collectors.toCollection(TreeSet::new)); 
+        			session.setAttribute("BoroughList", boroughLst);
+        			session.setAttribute("WeatherData", records);
+        			//url = "/Dashboard.jsp";
+        			
+                    nextUrl = "/Dashboard.jsp";
+                } 
+                else 
+                {
+                    System.out.println("Invalid login credentials.");
+                    displayMessage ="Invalid login credentials.";
+                    nextUrl = "/Login.jsp";
+                }
+            }
+            
+            
+            //---------------------------Dashboard--------------------
+            if(taskId.equalsIgnoreCase("DashboardFilter"))
+            {
+        		
+        		System.out.println("IN SERVLET JSON  ::" + new ObjectMapper().writeValueAsString(records));
+        		
+        		String borough = request.getParameter("borough");
+        		String startDate = request.getParameter("startDate");
+        		String endDate = request.getParameter("endDate");
+        		String holiday = request.getParameter("holiday");
+        		String sortOrder = request.getParameter("sortOrder");
+        		
+        		
+        		System.out.println("borough ::" + borough);
+        		System.out.println("startDate ::" + startDate);
+        		System.out.println("endDate ::" + endDate);
+        		System.out.println("holiday ::" + holiday);
+        		System.out.println("sortOrder ::" + sortOrder);
+        		List<WeatherDTO> filterList = SearchFilters.dashBoardFilter(borough,startDate,endDate,holiday,sortOrder);
+        		
+        		session.setAttribute("FilterVal", new DashboardFilterDTO(startDate, endDate, borough, holiday, sortOrder,"1"));
+        		session.setAttribute("WeatherData", filterList);
+        		
+        		nextUrl = "/Dashboard.jsp";
+            }
+            
+            
+            if(taskId.equalsIgnoreCase("DashboardFilterReset"))
+            {
+        		session.setAttribute("FilterVal", null);
+        		session.setAttribute("WeatherData", records);
+        		nextUrl = "/Dashboard.jsp";
+        	}
+        	
+            else if(taskId.equalsIgnoreCase("DashboardExcelExport"))
+			{
+				List<WeatherDTO> weatherList = (ArrayList) session.getAttribute("WeatherData") != null ? (ArrayList) session.getAttribute("WeatherData") : new ArrayList<>();
+				 String timestamp = String.valueOf(System.currentTimeMillis());
+				 //ExcelExport.exportToExcel(weatherList,response);
+				 nextUrl = "/Dashboard.jsp";
+			}
+        		
+          //---------------------------PickupFilter--------------------
+//            if(taskId.equalsIgnoreCase("PickupFilter")) {
+//                System.out.println("----Inside PickupFilter---------");
+//
+//                // Fetch form parameters
+//                String borough = request.getParameter("borough");
+//                String startDate = request.getParameter("startDate");
+//                String endDate = request.getParameter("endDate");
+//                String pickups = request.getParameter("noOfPickups");
+//                String trend = request.getParameter("trend");
+//                
+//                // Logging input parameters
+//                System.out.println("borough ::" + borough);
+//                System.out.println("startDate ::" + startDate);
+//                System.out.println("endDate ::" + endDate);
+//                System.out.println("noOfPickups ::" + pickups);
+//                System.out.println("trend ::" + trend);
+//
+//                // Call method to filter and get data
+//                List<PickupDTO> filteredPickups = SearchFilters.pickupFilter(borough, startDate, endDate, pickups, trend);
+//
+//                // Set filtered data in session for use in the JSP
+//                session.setAttribute("FilterVal", new PickupDTO(startDate, endDate, borough, pickups, trend));
+//                session.setAttribute("PickupData", filteredPickups);
+//
+//                // Redirect to Pickup Analysis page
+//                nextUrl = "/PickUpAnalysis.jsp";
+//            }
+
+            
+            
+          //---------------------------Weather--------------------
+            if(taskId.equalsIgnoreCase("WeatherFilter"))
+            {
+                System.out.println("----Inside WeatherFilter---------");
+
+                // Fetch the filter parameters from the request
+             //   String dateRange = request.getParameter("dateRange");
+                String borough = request.getParameter("borough");
+                String temperature = request.getParameter("temperature");
+                String windspeed = request.getParameter("windspeed");
+                             
+
+                String startDate = request.getParameter("startDate");
+                String endDate = request.getParameter("endDate");
+                String sd = request.getParameter("sd");
+                String speed = request.getParameter("windspeed");  // Assuming it's named 'windspeed' in the form
+                String temp = request.getParameter("temperature");
+                String pcp01 = request.getParameter("pcp01");
+                String pcp06 = request.getParameter("pcp06");  // If available
+                String pcp24 = request.getParameter("pcp24");  // If available
+
+                // Create a WeatherDTO object with the filters
+                WeatherAnalysisDTO weatherFilter = new WeatherAnalysisDTO(startDate, endDate, sd, speed, temp, pcp01, pcp06, pcp24);
+//
+
+               // session.setAttribute("FilterVal", weatherFilter);
+
+
+                // Call method to filter weather data
+//                List<WeatherDTO> filterList = SearchFilters.weatherFilter(borough, startDate, endDate, 
+//                                                                           temperature, windspeed, pcp01, sd);
+//
+//                // Set the session attributes for filters and weather data
+//                session.setAttribute("WeatherFilterVal", new WeatherDTO(startDate, endDate, borough, windspeed, 
+//                                                                        temperature, pcp01, pcp01, pcp01));
+//                session.setAttribute("WeatherData", filterList);
+
+                // Forward to the Weather Analysis page
+                nextUrl = "/WeatherAnalysis.jsp";
+            }
+
+            
+          //---------------------------LocationComparisonFilter--------------------
+            if(taskId.equalsIgnoreCase("LocationComparisonFilter"))
+            {                
+            	System.out.println("----Inside LocationComparisonFilter---------");
+            	
+            	
+                
+            }
+            
+          //---------------------------AdvancedSearchFilter--------------------
+            if(taskId.equalsIgnoreCase("AdvancedSearchFilter"))
+            {                
+            	System.out.println("----Inside AdvancedSearchFilter---------");
+           
+            }
+            
+            session.setAttribute("displayMessage", displayMessage);
+            System.out.println("Redirecting to nexturl :"+nextUrl);
+            
+            getServletConfig().getServletContext().getRequestDispatcher(nextUrl).forward(request,response);
+        
+        	
+		} 
+        catch (Exception e) 
+        {
+			System.out.println("EXCEPTION ::" + e);
+		}
+    }
+}
