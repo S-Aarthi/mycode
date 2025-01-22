@@ -1,0 +1,227 @@
+package com.service;
+
+import java.io.*;
+import java.util.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.w3c.dom.*;
+
+import com.dto.WeatherDTO;
+import com.utils.Constants;
+import com.utils.Utilities;
+
+
+//converts data from an Excel file (.xlsx format) to a JSON representation
+
+
+//.xlsx Excel file, unzips it, extracts data from the XML files inside
+//and transforms it into JSON by converting rows into WeatherDTO objects
+// then using utility method (convertDTOToJSON) to create JSON.
+
+public class ExcelToJSON 
+{
+	
+    public static void formExcelTOJSON() 
+    {
+        try 
+        {
+            // Unzip the .xlsx file and extract
+        	//unzipXlsx -- returns a map of file contents from the zipped .xlsx file
+        	
+            Map<String, String> zipContents = unzipXlsx(Constants.EXCEL_FILE_PATH);
+
+            //parses the shared strings
+            List<String> sharedStrings = parseSharedStrings(zipContents.get("xl/sharedStrings.xml"));
+
+            //parses the sheet data
+            List<Map<String, String>> rows = parseSheetXml(zipContents.get("xl/worksheets/sheet1.xml"), sharedStrings);
+
+            int count = 0;
+            List<WeatherDTO> weatherList = new ArrayList<>();
+            //weatherList stores instances of WeatherDTO created from each row
+            
+            for (Map<String, String> row : rows) 
+            {
+                System.out.println(row);
+                if(count != 0) //header row is skipped
+                {
+                	weatherList.add(Utilities.convertToDTO(row));
+                	
+                }
+               count++;
+            }
+            
+            if(weatherList != null && weatherList.size() > 0)
+            {
+            	Utilities.convertDTOToJSON(weatherList); 
+            	//to convert the list of WeatherDTO objects into JSON
+            }
+
+        } catch (Exception e) {
+           System.out.println("Exception ::" + e);
+        }
+    }
+
+    
+    //----------unzips Excel file and reads its contents into Map----------
+    
+    private static Map<String, String> unzipXlsx(String filePath) throws IOException 
+    {
+        Map<String, String> zipContents = new HashMap<>();
+        //key is the file path inside the zip 
+        //value is the file content as a string.
+        
+        try (ZipInputStream zipInputStream = new ZipInputStream(new FileInputStream(filePath))) 
+        {
+            ZipEntry entry;
+            while ((entry = zipInputStream.getNextEntry()) != null) 
+            {
+                if (!entry.isDirectory()) 
+                {
+                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                    byte[] buffer = new byte[1024];
+                    int len;
+                    while ((len = zipInputStream.read(buffer)) > 0) 
+                    {
+                        outputStream.write(buffer, 0, len);
+                    }
+                    zipContents.put(entry.getName(), outputStream.toString("UTF-8"));
+                    zipInputStream.closeEntry();
+                }
+            }
+        }
+
+        return zipContents;
+    }
+
+    //parses the sharedStrings.xml file to extract all shared string values in the Excel file
+    private static List<String> parseSharedStrings(String xmlContent) throws Exception 
+    {
+        List<String> sharedStrings = new ArrayList<>();
+        if (xmlContent == null) return sharedStrings;
+
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        InputStream stream = new ByteArrayInputStream(xmlContent.getBytes("UTF-8"));
+        Document document = builder.parse(stream);
+
+        NodeList stringNodes = document.getElementsByTagName("t");
+        for (int i = 0; i < stringNodes.getLength(); i++) 
+        {
+            sharedStrings.add(stringNodes.item(i).getTextContent());
+        }
+
+        return sharedStrings;
+    }
+
+    
+    
+    //processes the sheet1.xml content, which contains the actual sheet data.
+    private static List<Map<String, String>> parseSheetXml(String xmlContent, List<String> sharedStrings) throws Exception {
+        List<Map<String, String>> rows = new ArrayList<>();
+        if (xmlContent == null) return rows;
+
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        InputStream stream = new ByteArrayInputStream(xmlContent.getBytes("UTF-8"));
+        Document document = builder.parse(stream);
+
+        NodeList rowNodes = document.getElementsByTagName("row");
+
+        for (int i = 0; i < rowNodes.getLength(); i++) 
+        {
+            Node rowNode = rowNodes.item(i);
+            NodeList cellNodes = rowNode.getChildNodes();
+            Map<String, String> rowData = new LinkedHashMap<>();
+
+            int expectedIndex = 0;  // This tracks the expected column index.
+            
+            for (int j = 0; j < cellNodes.getLength(); j++) 
+            {
+                Node cellNode = cellNodes.item(j);
+                if (cellNode.getNodeName().equals("c")) 
+                {
+                    String cellRef = cellNode.getAttributes().getNamedItem("r").getNodeValue();
+                    int actualIndex = getColumnIndexFromCellRef(cellRef);
+
+                    while (expectedIndex < actualIndex) 
+                    {
+                        rowData.put("Column" + expectedIndex, "");
+                        expectedIndex++;
+                    }
+
+                    String cellValue = getCellValue(cellNode, sharedStrings);
+                    rowData.put("Column" + expectedIndex, cellValue);
+                    expectedIndex++;
+                }
+            }
+
+            while (expectedIndex < cellNodes.getLength()) 
+            {
+                rowData.put("Column" + expectedIndex, "");
+                expectedIndex++;
+            }
+
+            rows.add(rowData);
+        }
+        return rows;
+    }
+
+    private static int getColumnIndexFromCellRef(String cellRef) 
+    {
+    	StringBuilder columnPart = new StringBuilder();
+       try {
+           for (char c : cellRef.toCharArray()) 
+           {
+               if (Character.isLetter(c)) {
+                   columnPart.append(c);
+               } else {
+                   break;
+               }
+           }
+		} catch (Exception e) {
+			System.out.println("Exception in getColumnIndexFromCellRef() ::" + e);
+		}
+       
+        // Convert column letters to zero-based index ("A" -> 0, "B" -> 1, ..., "AA" -> 26 likewise)
+        return columnPart.toString().chars()
+                .reduce(0, (acc, ch) -> acc * 26 + (ch - 'A' + 1)) - 1;
+    }
+
+
+    private static String getCellValue(Node cell, List<String> sharedStrings) 
+    {
+       System.out.println("--------INSIDE CELL VALUE METHOD-------------");
+       String value = "";
+       try {
+    	   String cellType = cell.getAttributes().getNamedItem("t") != null ?
+                   cell.getAttributes().getNamedItem("t").getNodeValue() : "";
+
+			
+			 NodeList cellChildren = cell.getChildNodes();
+			 for (int k = 0; k < cellChildren.getLength(); k++) 
+			 {
+			     Node child = cellChildren.item(k);
+			     if (child.getNodeName().equals("v")) {
+			         value = child.getTextContent();
+			         break;
+			     }
+			 }
+			
+			 if ("s".equals(cellType)) 
+			 {
+			     return sharedStrings.get(Integer.parseInt(value));
+			 }
+	}catch (Exception e) 
+       {
+		System.out.println("Exception In getCellValue() ::" + e);
+	}
+        System.out.println("VALUE ::" + value);
+        return value;
+    }
+    
+}
