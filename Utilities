@@ -1,0 +1,205 @@
+			
+package com.utils;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.codehaus.jackson.map.ObjectMapper;
+
+import com.dto.WeatherDTO;
+
+public class Utilities {
+
+	public static WeatherDTO convertToDTO(Map<String, String> row) 
+	{
+		WeatherDTO dto = new WeatherDTO();
+		 for (String key : row.keySet()) {
+			 if(key.equals("Column0"))
+			 {
+				 dto.setPickupDate(convertExcelDateToJavaDate(Double.valueOf(row.get(key))));
+			 }else if(key.equals("Column1"))
+			 {
+				 dto.setBorough(row.get(key));
+			 }
+			 else if(key.equals("Column2"))
+			 {
+				 dto.setPickups(row.get(key));
+			 }
+			 else if(key.equals("Column3"))
+			 {
+				 dto.setSpeed(row.get(key));
+			 }
+			 else if(key.equals("Column4")){
+				 dto.setVsb(row.get(key));
+			 }
+			 else if(key.equals("Column5"))
+			 {
+				 System.out.println("Column 5 ::" + row.get(key));
+				 dto.setTemp(row.get(key));
+			 }
+			 else if(key.equals("Column6"))
+			 {
+				 dto.setDewp(row.get(key));
+			 }
+			 else if(key.equals("Column7"))
+			 {
+				 dto.setSlp(row.get(key));
+			 }
+			 else if(key.equals("Column8"))
+			 {
+				 dto.setPcp01(row.get(key));
+			 }
+			 else if(key.equals("Column9"))
+			 {
+				 dto.setPcp06(row.get(key));
+			 }
+			 else if(key.equals("Column10"))
+			 {
+				 dto.setPcp24(row.get(key));
+			 }
+			 else if(key.equals("Column11"))
+			 {
+				 dto.setSd(row.get(key));
+			 }
+			 else if(key.equals("Column12"))
+			 {
+				 dto.setHday(row.get(key));
+			 }
+			
+             System.out.println("Key: " + key + ", Value: " + row.get(key));
+             
+         }
+		 
+		 return dto;
+	}
+
+	
+	 public static Date convertExcelDateToJavaDate(double excelDate) {
+	        int daysBetween1900And1970 = 25569;
+	        long milliseconds = (long)((excelDate - daysBetween1900And1970) * 24 * 60 * 60 * 1000);
+	        return new Date(milliseconds);
+	    }
+
+
+	public static void convertDTOToJSON(List<WeatherDTO> weatherList) 
+	{
+		 ObjectMapper objectMapper = new ObjectMapper();
+
+	        String filePath = Constants.DIRECTORY_PATH + Constants.FILE_PATH;
+	        try {
+	            // Create the directory if it doesn't exist
+	            File directory = new File(Constants.DIRECTORY_PATH);
+	            if (!directory.exists()) {
+	                directory.mkdirs(); 
+	            }
+
+	            // Convert DTO to JSON and save to file
+	            File jsonFile = new File(filePath);
+	            objectMapper.writeValue(jsonFile, weatherList);
+	            System.out.println("JSON file created successfully: " + jsonFile.getAbsolutePath());
+	        } catch (IOException e) {
+	            e.printStackTrace();
+	        }
+	}
+	
+	public static String dateToString(Date date) {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+        String dateString = null;
+        if (date != null) {
+            dateString = formatter.format(date);
+            System.out.println("Formatted Date: " + dateString);
+        }
+        return dateString;
+    }
+	
+	
+	public static Date stringToDate(String dateString)
+	{
+		
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+        Date date = null;
+        if(dateString != null && !dateString.isEmpty())
+        {
+	        try {
+	            date = formatter.parse(dateString);
+	            System.out.println("Converted Date: " + date);
+	        } catch (ParseException e) {
+	            e.printStackTrace();
+	        }
+        }
+        return date;
+	}
+	
+	public static LocalDate StringToLocalDate(String dateString)
+	{
+		 LocalDate localDate = null;
+		 if(dateString != null && !dateString.isEmpty())
+		 {
+			 try {
+					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+			        localDate = LocalDate.parse(dateString, formatter);
+			        System.out.println("Converted LocalDate: " + localDate);
+				} catch (Exception e) {
+					System.out.println("EXCEPTION ::" + e);
+				}
+		 }
+		
+		return localDate;
+	}
+	
+	public static LocalDateTime stringToLocDteTime(String dateTimeString)
+	{
+		LocalDateTime localDateTime = null;
+		if(dateTimeString != null && !dateTimeString.isEmpty())
+		{
+			try {
+				 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+			        localDateTime = LocalDateTime.parse(dateTimeString,formatter);
+			        System.out.println("Converted LocalDateTime: " + localDateTime);
+			} catch (Exception e) {
+				System.out.println("EXCEPTION ::" + e);
+			}
+			
+		}
+		return localDateTime;
+	}
+	
+	
+	public static String getTimeOfDay(Date date) {
+        // Use Calendar to extract the hour
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        int hour = calendar.get(Calendar.HOUR_OF_DAY); // 24-hour format
+
+        // Classify time of day
+        if (hour >= 4 && hour <= 11) {
+            return "Morning";  // 4:00 - 11:59
+        } else if (hour >= 12 && hour <= 15) {
+            return "Noon";     // 12:00 - 15:59
+        } else if (hour >= 16 && hour <= 22) {
+            return "Evening";  // 16:00 - 22:59
+        } else {
+            return "Night";    // 22:01 - 3:59
+        }
+    }
+	
+	
+	 public static String classifyWindSpeed(int mph) {
+	        if (mph >= 0 && mph <= 5) {
+	            return "Low";  // 0 - 5 mph (0 - 8 km/h)
+	        } else if (mph >= 6 && mph <= 15) {
+	            return "Moderate";  // 6 - 15 mph (9 - 24 km/h)
+	        } else {
+	            return "High";  // 16 mph and above (25 km/h and above)
+	        }
+	    }
+}
