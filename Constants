@@ -1,0 +1,8 @@
+package com.utils;
+
+public class Constants 
+{
+	public static String EXCEL_FILE_PATH = "C:/Users/HDB94608G/Documents/DataSet_Test.xlsx";
+	public static String DIRECTORY_PATH = "C:/Appl/AWP/WeatherPickupAnalysis/src";
+	public static String FILE_PATH = "/WeatherData.json";
+}
