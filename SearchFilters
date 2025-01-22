@@ -1,0 +1,247 @@
+package com.service;
+
+import java.io.IOException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.codehaus.jackson.map.ObjectMapper;
+
+import com.utils.Utilities;
+import com.dto.PickUpAnalysisFilterDTO;
+import com.dto.WeatherDTO;
+
+public class SearchFilters 
+{
+
+	public static List<WeatherDTO> dashBoardFilter(String boroughFilter, String startDate1, String endDate1, String holidayFilter, String sortOrder) throws IOException
+	{
+		List<WeatherDTO> weatherList = LoadJSON.loadRecords();
+		Date startDate = Utilities.stringToDate(startDate1);
+		Date endDate = Utilities.stringToDate(endDate1);
+		List<WeatherDTO> filteredList = weatherList.stream()
+                .filter(s -> {
+                    Date recordDate = s.getPickupDate();
+                    return (recordDate != null) && 
+                           (startDate == null || recordDate.after(startDate) || recordDate.equals(startDate)) &&
+                           (endDate == null || recordDate.before(endDate) || recordDate.equals(endDate));
+                })
+                .filter(s -> {
+                    String borough = s.getBorough();
+                    return boroughFilter == null || boroughFilter.isEmpty() || boroughFilter.equalsIgnoreCase(borough);
+                })
+                .filter(s -> {
+                    String holiday = s.getHday();
+                    return holidayFilter == null || holidayFilter.isEmpty() || holidayFilter.equalsIgnoreCase(holiday);
+                })
+                .sorted((s1, s2) -> {
+                    if ("pickup_date_asc".equalsIgnoreCase(sortOrder)) {
+                        return s1.getPickupDate().compareTo(s2.getPickupDate());
+                    } else if ("pickup_date_desc".equalsIgnoreCase(sortOrder)) {
+                        return s2.getPickupDate().compareTo(s1.getPickupDate());
+                    } else if ("borough_name_asc".equalsIgnoreCase(sortOrder)) {
+                        return s1.getBorough().compareToIgnoreCase(s2.getBorough());
+                    } else if ("borough_name_desc".equalsIgnoreCase(sortOrder)) {
+                        return s2.getBorough().compareToIgnoreCase(s1.getBorough());
+                    } else {
+                        return 0;
+                    }
+                })
+                .collect(Collectors.toList());
+		System.out.println("Test Filter ::" + new ObjectMapper().writeValueAsString(filteredList));
+		return filteredList;
+	}
+	
+	
+	public static  List<WeatherDTO> pickUpAnalysisFilter(PickUpAnalysisFilterDTO pickupDTO) throws IOException 
+	{
+		List<WeatherDTO> weatherList = LoadJSON.loadRecords();
+		
+		List<WeatherDTO> filterList = weatherList.stream()
+			    .filter(record -> {
+			        Instant instant = Instant.ofEpochMilli(record.getPickupDate().getTime());
+
+			        // Date filtering
+			        boolean dateMatch = true;
+			        if (pickupDTO.getDateFilterType() != null) {
+			            if ("Date".equals(pickupDTO.getDateFilterType())) {
+			                LocalDate recordDate = instant.atZone(ZoneId.systemDefault()).toLocalDate();
+			                LocalDate startDate = Utilities.StringToLocalDate(pickupDTO.getStartDate());
+			                LocalDate endDate = Utilities.StringToLocalDate(pickupDTO.getEndDate());
+			                dateMatch = (startDate == null || recordDate.isEqual(startDate) || recordDate.isAfter(startDate)) &&
+			                            (endDate == null || recordDate.isEqual(endDate) || recordDate.isBefore(endDate));
+			            } else if ("DateandTime".equals(pickupDTO.getDateFilterType())) {
+			                LocalDateTime recordDateTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
+			                LocalDateTime startDateTime = Utilities.stringToLocDteTime(pickupDTO.getStartDateTie());
+			                LocalDateTime endDateTime = Utilities.stringToLocDteTime(pickupDTO.getEndDateTime());
+			                dateMatch = (startDateTime == null || recordDateTime.isEqual(startDateTime) || recordDateTime.isAfter(startDateTime)) &&
+			                            (endDateTime == null || recordDateTime.isEqual(endDateTime) || recordDateTime.isBefore(endDateTime));
+			            }
+			        }
+
+			        // Borough filtering
+			        boolean boroughMatch = true;
+			        if (pickupDTO.getBorough() != null && !pickupDTO.getBorough().isEmpty()) {
+			            boroughMatch = pickupDTO.getBorough().equals(record.getBorough());
+			        }
+
+			        // No of Pickups filtering
+			        boolean pickupsMatch = true;
+			        String noOfPickups = pickupDTO.getPickupRange();
+			        int recordPickups = Integer.parseInt(record.getPickups());
+			        
+			        if (noOfPickups != null && !noOfPickups.isEmpty()) {
+			            switch (noOfPickups) {
+			                case "below50":
+			                    pickupsMatch = recordPickups < 50;
+			                    break;
+			                case "50-100":
+			                    pickupsMatch = recordPickups >= 50 && recordPickups <= 100;
+			                    break;
+			                case "100-200":
+			                    pickupsMatch = recordPickups >= 100 && recordPickups <= 200;
+			                    break;
+			                case "200-500":
+			                    pickupsMatch = recordPickups >= 200 && recordPickups <= 500;
+			                    break;
+			                case "500-1000":
+			                    pickupsMatch = recordPickups >= 500 && recordPickups <= 1000;
+			                    break;
+			                case "1000-2000":
+			                    pickupsMatch = recordPickups >= 1000 && recordPickups <= 2000;
+			                    break;
+			                case "Above 2000":
+			                    pickupsMatch = recordPickups > 2000;
+			                    break;
+			                default:
+			                    break;
+			            }
+			        }
+			        return dateMatch && boroughMatch && pickupsMatch;
+			    })
+			    .collect(Collectors.toList());
+
+		
+		System.out.println("ANALYSIS FILTER ::" + new ObjectMapper().writeValueAsString(filterList));
+		
+		
+		return filterList;
+		
+	}
+	
+	
+
+	
+	
+	
+
+//	public static List<WeatherDTO> weatherFilter(String boroughFilter, String startDate1, String endDate1, 
+//            String temperatureFilter, String windspeedFilter, 
+//            String pcp01Filter, String sdFilter) throws IOException {
+//
+//    // Load CombinedDTO records (as you are using LoadJSON.loadRecords() already)
+//    List<CombinedDTO> combinedList = LoadJSON.loadRecords();  
+//
+//    // Convert the start and end date strings into Date objects for comparison
+//    Date startDate = Utilities.stringToDate(startDate1);  
+//    Date endDate = Utilities.stringToDate(endDate1);    
+//
+//    List<WeatherDTO> filteredList = combinedList.stream()
+//    // Convert CombinedDTO to WeatherDTO
+//    .map(c -> {
+//        // Ensure all required fields are properly mapped from CombinedDTO to WeatherDTO
+//        String startDateStr = c.getStartDate() != null ? c.getStartDate() : ""; 
+//        String endDateStr = c.getEndDate() != null ? c.getEndDate() : ""; 
+//
+//        return new WeatherDTO(startDateStr, endDateStr, c.getSd(), c.getSpeed(),
+//                              c.getTemp(), c.getPcp01(), c.getPcp06(), c.getPcp24());
+//    })
+//    // Filter by date range (startDate and endDate)
+//    .filter(w -> {
+//        Date recordDate = Utilities.stringToDate(w.getStartDate());  // Assuming WeatherDTO stores startDate as String
+//        return (recordDate != null) && 
+//               (startDate == null || recordDate.after(startDate) || recordDate.equals(startDate)) &&
+//               (endDate == null || recordDate.before(endDate) || recordDate.equals(endDate));
+//    })
+//    // Filter by borough (if provided)
+//    .filter(w -> {
+//        String borough = w.getBorough();  // Assuming CombinedDTO has this field and it's included in WeatherDTO
+//        return boroughFilter == null || boroughFilter.isEmpty() || boroughFilter.equalsIgnoreCase(borough);
+//    })
+//    // Filter by temperature (if provided)
+//    .filter(w -> {
+//        String temp = w.getTemp();  // Assuming WeatherDTO has temp field
+//        return temperatureFilter == null || temperatureFilter.isEmpty() || temperatureFilter.equalsIgnoreCase(temp);
+//    })
+//    // Filter by wind speed (if provided)
+//    .filter(w -> {
+//        String windspeed = w.getSpeed();  // Assuming there's windspeed field in CombinedDTO and passed to WeatherDTO
+//        return windspeedFilter == null || windspeedFilter.isEmpty() || windspeedFilter.equalsIgnoreCase(windspeed);
+//    })
+//    // Filter by PCP01 (precipitation for 1 hour)
+//    .filter(w -> {
+//        String pcp01 = w.getPcp01();  // Assuming there's pcp01 field
+//        return pcp01Filter == null || pcp01Filter.isEmpty() || pcp01Filter.equalsIgnoreCase(pcp01);
+//    })
+//    // Filter by snow depth (if provided)
+//    .filter(w -> {
+//        String sd = w.getSd();  // Assuming snow depth field exists
+//        return sdFilter == null || sdFilter.isEmpty() || sdFilter.equalsIgnoreCase(sd);
+//    })
+//    .collect(Collectors.toList());
+//
+//    // Print out filtered list for debugging
+//    System.out.println("Test Weather Filter ::" + new ObjectMapper().writeValueAsString(filteredList));
+//    return filteredList;
+//}
+
+
+//	//-------------pickupFilter---------------
+//	
+//		public static List<PickupDTO> pickupFilter(String boroughFilter, String startDate1, String endDate1, String noOfPickupsFilter, String trendFilter) throws IOException {
+//	        // Load the pickup records from the JSON file
+//	        List<PickupDTO> pickupList = LoadJSON.loadPickupRecords();
+//
+//	        // Convert the start and end dates
+//	        Date startDate = Utilities.stringToDate(startDate1);
+//	        Date endDate = Utilities.stringToDate(endDate1);
+//
+//	        // Filter the records based on the passed criteria
+//	        List<PickupDTO> filteredList = pickupList.stream()
+//	                .filter(p -> {
+//	                    // Filter by date range
+//	                    Date recordDate = p.getPickupDate();
+//	                    return (recordDate != null) &&
+//	                           (startDate == null || !recordDate.before(startDate)) &&
+//	                           (endDate == null || !recordDate.after(endDate));
+//	                })
+//	                .filter(p -> {
+//	                    // Filter by borough
+//	                    return boroughFilter == null || boroughFilter.isEmpty() || boroughFilter.equalsIgnoreCase(p.getBorough());
+//	                })
+//	                .filter(p -> {
+//	                    // Filter by number of pickups
+//	                    return noOfPickupsFilter == null || noOfPickupsFilter.isEmpty() || p.getNoOfPickups().equals(noOfPickupsFilter);
+//	                })
+//	                .filter(p -> {
+//	                    // Filter by trend
+//	                    return trendFilter == null || trendFilter.isEmpty() || trendFilter.equalsIgnoreCase(p.getTrend());
+//	                })
+//	                .sorted((p1, p2) -> {
+//	                    // Sorting logic, you can sort by pickup date or other fields as needed
+//	                    return p1.getPickupDate().compareTo(p2.getPickupDate());
+//	                })
+//	                .collect(Collectors.toList());
+//
+//	        // Output filtered data for debugging
+//	        System.out.println("Filtered Pickups: " + new ObjectMapper().writeValueAsString(filteredList));
+//	        
+//	        return filteredList;
+//	    }
+
+	
+}
