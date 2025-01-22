@@ -1,0 +1,54 @@
+package com.service;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
+
+import com.dto.WeatherDTO;
+import com.utils.Constants;
+
+public class LoadJSON 
+{
+	public static List<WeatherDTO> loadRecords() throws IOException 
+	{
+		
+		System.out.println("------ INSIDE LOCAL RECORD -----");
+		 ObjectMapper objectMapper = new ObjectMapper();
+		
+		List<WeatherDTO> weatherList = null;
+		File file = new File(Constants.DIRECTORY_PATH+Constants.FILE_PATH);
+		
+		if (!file.exists())
+		{
+			System.out.println("---- NO FILE EXIST----");
+			weatherList = new ArrayList<>();
+		}
+		else
+		{
+			System.out.println("-------FILE EXIST---");
+			System.out.println("file::::"+file.getName());
+			 
+		        try 
+		        {
+		        	weatherList = objectMapper.readValue(file, new TypeReference<List<WeatherDTO>>() {});
+		           System.out.println("LIST SIZE ::" + weatherList != null ? weatherList.size() : null);
+		        	
+		        	for (WeatherDTO records : weatherList) 
+		        	{
+		                System.out.println(objectMapper.writeValueAsString(records));
+		            }
+		        } catch (IOException e) {
+		            e.printStackTrace();
+		        }
+		}
+		
+		System.out.println(objectMapper.writeValueAsString(weatherList));
+		
+		return weatherList;
+		
+	}
+}
