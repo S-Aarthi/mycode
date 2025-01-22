@@ -1,0 +1,106 @@
+package com.dto;
+
+public class WeatherAnalysisDTO 
+{
+	
+		private String startDate;
+		private String endDate;
+		private String sd;
+		private String speed;
+		private String temp;
+		private String pcp01;
+		private String pcp06;
+		private String pcp24;
+		private String borough;
+		
+		public WeatherAnalysisDTO(String startDate, String endDate, String sd, String speed, String temp, 
+	            String pcp01, String pcp06, String pcp24) 
+		{
+	super();
+	this.startDate = startDate;
+	this.endDate = endDate;
+	this.sd = sd;
+	this.speed = speed;
+	this.temp = temp;
+	this.pcp01 = pcp01;
+	this.pcp06 = pcp06;
+	this.pcp24 = pcp24;
+	}
+
+		public String getStartDate() {
+			return startDate;
+		}
+
+		public void setStartDate(String startDate) {
+			this.startDate = startDate;
+		}
+
+		public String getEndDate() {
+			return endDate;
+		}
+
+		public void setEndDate(String endDate) {
+			this.endDate = endDate;
+		}
+
+		public String getSd() {
+			return sd;
+		}
+
+		public void setSd(String sd) {
+			this.sd = sd;
+		}
+
+		public String getSpeed() {
+			return speed;
+		}
+
+		public void setSpeed(String speed) {
+			this.speed = speed;
+		}
+
+		public String getTemp() {
+			return temp;
+		}
+
+		public void setTemp(String temp) {
+			this.temp = temp;
+		}
+
+		public String getPcp01() {
+			return pcp01;
+		}
+
+		public void setPcp01(String pcp01) {
+			this.pcp01 = pcp01;
+		}
+
+		public String getPcp06() {
+			return pcp06;
+		}
+
+		public void setPcp06(String pcp06) {
+			this.pcp06 = pcp06;
+		}
+
+		public String getPcp24() {
+			return pcp24;
+		}
+
+		public void setPcp24(String pcp24) {
+			this.pcp24 = pcp24;
+		}
+
+		public String getBorough() {
+			return borough;
+		}
+
+		public void setBorough(String borough) {
+			this.borough = borough;
+		}
+
+		
+		
+		
+	}	
+	
