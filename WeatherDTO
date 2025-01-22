@@ -1,0 +1,181 @@
+package com.dto;
+
+import java.io.Serializable;
+import java.util.Date;
+
+import org.codehaus.jackson.annotate.JsonProperty;
+
+public class WeatherDTO implements Serializable
+{
+	private static final long serialVersionUID = 1L;
+	
+	private Date pickupDate;
+	private String borough;
+	private String pickups;
+	private String speed;
+	private String vsb;
+	private String temp;
+	private String dewp;
+	private String slp;
+	private String pcp01;
+	private String pcp06;
+	private String pcp24;
+	private String sd;
+	private String hday;
+	
+	
+	
+	public Date getPickupDate() 
+	{
+		return pickupDate;
+	}
+	
+	public void setPickupDate(Date pickupDate) 
+	{
+		this.pickupDate = pickupDate;
+	}
+	
+	public String getBorough() 
+	{
+		return borough;
+	}
+	
+	public void setBorough(String borough) 
+	{
+		this.borough = borough;
+	}
+	
+	public String getPickups() 
+	{
+		return pickups;
+	}
+	
+	public void setPickups(String pickups) 
+	{
+		this.pickups = pickups;
+	}
+	
+	public String getSpeed() 
+	{
+		return speed;
+	}
+	
+	public void setSpeed(String speed) 
+	{
+		this.speed = speed;
+	}
+	
+	public String getVsb() 
+	{
+		return vsb;
+	}
+	
+	public void setVsb(String vsb) 
+	{
+		this.vsb = vsb;
+	}
+	
+	public String getTemp() 
+	{
+		return temp;
+	}
+	
+	public void setTemp(String temp) 
+	{
+		this.temp = temp;
+	}
+	
+	public String getDewp() 
+	{
+		return dewp;
+	}
+	
+	public void setDewp(String dewp) 
+	{
+		this.dewp = dewp;
+	}
+	
+	public String getSlp() 
+	{
+		return slp;
+	}
+	
+	public void setSlp(String slp) 
+	{
+		this.slp = slp;
+	}
+	
+	public String getPcp01() 
+	{
+		return pcp01;
+	}
+	
+	public void setPcp01(String pcp01) 
+	{
+		this.pcp01 = pcp01;
+	}
+	
+	public String getPcp06() 
+	{
+		return pcp06;
+	}
+	
+	public void setPcp06(String pcp06) 
+	{
+		this.pcp06 = pcp06;
+	}
+	
+	public String getPcp24() 
+	{
+		return pcp24;
+	}
+	
+	public void setPcp24(String pcp24) 
+	{
+		this.pcp24 = pcp24;
+	}
+	
+	public String getSd() 
+	{
+		return sd;
+	}
+	
+	public void setSd(String sd) 
+	{
+		this.sd = sd;
+	}
+	
+	public String getHday() 
+	{
+		return hday;
+	}
+	
+	public void setHday(String hday) 
+	{
+		this.hday = hday;
+	}
+
+	private String startDate;  
+    private String endDate;
+
+
+
+	public String getStartDate() {
+		return startDate;
+	}
+	
+	@JsonProperty("startDate") 
+	public void setStartDate(String startDate) {
+		this.startDate = startDate;
+	}
+	@JsonProperty("endDate")
+	public String getEndDate() {
+		return endDate;
+	}
+
+	public void setEndDate(String endDate) {
+		this.endDate = endDate;
+	}
+    
+    
+}
